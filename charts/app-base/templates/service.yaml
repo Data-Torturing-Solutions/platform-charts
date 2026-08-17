@@ -1,0 +1,14 @@
+{{- if .Values.service.ports }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "app-base.fullname" . }}
+  labels:
+    {{- include "app-base.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "app-base.selectorLabels" . | nindent 4 }}
+  ports:
+    {{- toYaml .Values.service.ports | nindent 4 }}
+{{- end }}

@@ -1,0 +1,70 @@
+{{- $root := . }}
+{{- range $job := .Values.cronjobs }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "app-base.fullname" $root }}-{{ $job.name }}
+  labels:
+    {{- include "app-base.labels" $root | nindent 4 }}
+spec:
+  schedule: {{ $job.schedule | quote }}
+  concurrencyPolicy: {{ $job.concurrencyPolicy | default "Forbid" }}
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      {{- if $job.activeDeadlineSeconds }}
+      activeDeadlineSeconds: {{ $job.activeDeadlineSeconds }}
+      {{- end }}
+      backoffLimit: 0
+      template:
+        metadata:
+          labels:
+            {{- include "app-base.labels" $root | nindent 12 }}
+        spec:
+          restartPolicy: Never
+          serviceAccountName: {{ include "app-base.serviceAccountName" $root }}
+          securityContext:
+            {{- toYaml $root.Values.podSecurityContext | nindent 12 }}
+          containers:
+            - name: {{ $job.name }}
+              image: {{ $job.image | default (include "app-base.image" $root) }}
+              imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+              securityContext:
+                {{- toYaml $root.Values.securityContext | nindent 16 }}
+              {{- with $job.command }}
+              command:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              {{- with $job.args }}
+              args:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              {{- with $job.env }}
+              env:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              {{- with $job.envFrom }}
+              envFrom:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              resources:
+                {{- toYaml ($job.resources | default $root.Values.resources) | nindent 16 }}
+              {{- if or $root.Values.persistence.enabled $job.volumeMounts }}
+              volumeMounts:
+                {{- if $root.Values.persistence.enabled }}
+                - name: data
+                  mountPath: {{ $root.Values.persistence.mountPath }}
+                {{- end }}
+                {{- with $job.volumeMounts }}
+                {{- toYaml . | nindent 16 }}
+                {{- end }}
+              {{- end }}
+          {{- if $root.Values.persistence.enabled }}
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: {{ include "app-base.fullname" $root }}
+          {{- end }}
+{{- end }}

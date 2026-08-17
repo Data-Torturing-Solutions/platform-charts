@@ -1,0 +1,40 @@
+{{- if .Values.ingress.enabled }}
+{{- $root := . }}
+{{- range $group := .Values.ingress.groups }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "app-base.fullname" $root }}-{{ $group.name }}
+  labels:
+    {{- include "app-base.labels" $root | nindent 4 }}
+  annotations:
+    cert-manager.io/cluster-issuer: {{ $root.Values.ingress.clusterIssuer }}
+    {{- with $group.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ $root.Values.ingress.className }}
+  tls:
+    - hosts:
+        {{- range $root.Values.ingress.hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ $root.Values.ingress.tlsSecretName | default (printf "%s-tls" (include "app-base.fullname" $root)) }}
+  rules:
+    {{- range $host := $root.Values.ingress.hosts }}
+    - host: {{ $host | quote }}
+      http:
+        paths:
+          {{- range $p := $group.paths }}
+          - path: {{ $p.path }}
+            pathType: {{ $p.pathType }}
+            backend:
+              service:
+                name: {{ include "app-base.fullname" $root }}
+                port:
+                  name: {{ $p.servicePort }}
+          {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

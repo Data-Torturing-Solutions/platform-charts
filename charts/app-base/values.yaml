@@ -1,0 +1,110 @@
+# Default values for app-base.
+# Every app repo overrides a subset of this in its own deploy/values.yaml.
+
+nameOverride: ""
+
+image:
+  repository: ""
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+# SQLite-backed apps must stay Recreate: an RWO PVC can't be mounted by two
+# pods at once, so a rolling update across replicas would deadlock.
+strategy:
+  type: Recreate
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  fsGroup: 10001
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+  readOnlyRootFilesystem: false
+
+serviceAccount:
+  create: true
+  annotations: {}
+
+# --- Primary container ---
+command: []
+args: []
+port: 8000
+env: []
+envFrom: []
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+volumeMounts: []
+livenessProbe: {}
+readinessProbe: {}
+
+# --- Additional containers in the same pod (Datasette sidecar, Caddy front) ---
+# Each entry is a full container spec merged with sane defaults:
+# - name, image, command, args, port, env, envFrom, resources, volumeMounts
+extraContainers: []
+
+# --- Service ---
+service:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+
+# --- Ingress ---
+# groups lets one app expose multiple path sets under the same host with
+# different annotations (e.g. a public "/" group and a basic-auth-protected
+# "/internal/datasette" group) as separate Ingress objects.
+ingress:
+  enabled: false
+  className: nginx
+  clusterIssuer: letsencrypt-cloudflare
+  hosts: []
+  tlsSecretName: ""
+  groups:
+    - name: default
+      annotations: {}
+      paths:
+        - path: /
+          pathType: Prefix
+          servicePort: http
+
+# --- Persistence (SQLite data, tailer state, etc.) ---
+persistence:
+  enabled: false
+  size: 1Gi
+  storageClassName: do-block-storage-retain
+  accessModes: ["ReadWriteOnce"]
+  mountPath: /data
+
+# --- ConfigMap (non-secret runtime config) ---
+configMap:
+  data: {}
+
+# --- CronJobs (systemd-timer equivalents) ---
+cronjobs: []
+# - name: maintenance
+#   schedule: "20 3 * * *"
+#   command: ["app", "purge"]
+#   args: []
+#   image: ""              # defaults to .Values.image
+#   env: []
+#   envFrom: []
+#   resources: {}
+#   activeDeadlineSeconds: 900
+#   concurrencyPolicy: Forbid
+#   volumeMounts: []        # only needed if this job touches the PVC
+
+labels: {}
+annotations: {}
