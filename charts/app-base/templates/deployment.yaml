@@ -76,7 +76,7 @@ spec:
           {{- end }}
         {{- range $c := .Values.extraContainers }}
         - name: {{ $c.name }}
-          image: {{ $c.image }}
+          image: {{ $c.image | default (include "app-base.image" $) }}
           imagePullPolicy: {{ $c.imagePullPolicy | default "IfNotPresent" }}
           securityContext:
             {{- toYaml $.Values.securityContext | nindent 12 }}

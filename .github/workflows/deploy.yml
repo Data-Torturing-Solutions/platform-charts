@@ -15,7 +15,7 @@ on:
         description: app-base chart version to deploy
         required: false
         type: string
-        default: "0.1.0"
+        default: "0.1.1"
       cluster_name:
         description: DOKS cluster name
         required: false
