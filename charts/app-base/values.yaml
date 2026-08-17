@@ -43,6 +43,7 @@ serviceAccount:
 command: []
 args: []
 port: 8000
+portName: http   # rename if an extraContainer (e.g. a Caddy front) also needs "http" — container port names must be unique within a pod
 env: []
 envFrom: []
 resources:

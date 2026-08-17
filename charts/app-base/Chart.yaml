@@ -2,5 +2,5 @@ apiVersion: v2
 name: app-base
 description: Shared chart for small apps on the rosetraviss.uk DOKS cluster
 type: application
-version: 0.1.2
+version: 0.1.4
 appVersion: "1.0"

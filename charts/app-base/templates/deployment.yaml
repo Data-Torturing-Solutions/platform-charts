@@ -43,7 +43,7 @@ spec:
           {{- end }}
           {{- if .Values.port }}
           ports:
-            - name: http
+            - name: {{ .Values.portName | default "http" }}
               containerPort: {{ .Values.port }}
           {{- end }}
           {{- with .Values.env }}

@@ -25,6 +25,21 @@ spec:
         spec:
           restartPolicy: Never
           serviceAccountName: {{ include "app-base.serviceAccountName" $root }}
+          {{- if $root.Values.persistence.enabled }}
+          # RWO volumes attach to one node at a time (confirmed against DO's
+          # CSI: a job pod on a different node than the Deployment's pod hangs
+          # in ContainerCreating with a Multi-Attach error, forever — Forbid
+          # concurrency alone doesn't help since this is node placement, not
+          # overlap). Require landing on a node that already has a pod from
+          # this release, so the CronJob can actually attach the same PVC.
+          affinity:
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - labelSelector:
+                    matchLabels:
+                      {{- include "app-base.selectorLabels" $root | nindent 22 }}
+                  topologyKey: kubernetes.io/hostname
+          {{- end }}
           securityContext:
             {{- toYaml $root.Values.podSecurityContext | nindent 12 }}
           containers:
