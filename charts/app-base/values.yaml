@@ -31,6 +31,13 @@ securityContext:
 serviceAccount:
   create: true
   annotations: {}
+  # DOCR's cluster integration only attaches its pull secret to each
+  # namespace's *default* ServiceAccount automatically — a custom one like
+  # this chart creates gets nothing unless told, and falls back to an
+  # anonymous pull that DOCR rejects. Matches the registry set up via
+  # `doctl kubernetes cluster registry add` for this cluster.
+  imagePullSecrets:
+    - name: rosetraviss
 
 # --- Primary container ---
 command: []
