@@ -1,10 +1,10 @@
 # Shared backup utility image for every app's backup CronJob.
-# docker build -t registry.digitalocean.com/rosetraviss/backup-sqlite:1 images/backup
-# docker push registry.digitalocean.com/rosetraviss/backup-sqlite:1
+# docker build -t registry.digitalocean.com/rosetraviss/backup-sqlite:2 images/backup
+# docker push registry.digitalocean.com/rosetraviss/backup-sqlite:2
 # Rarely changes — tag with a small integer, not a git SHA, and bump by hand.
 
 FROM alpine:3.20
-RUN apk add --no-cache sqlite gzip rclone bash \
+RUN apk add --no-cache sqlite gzip rclone bash curl \
     && adduser -D -u 10001 backup
 COPY backup.sh /usr/local/bin/backup.sh
 RUN chmod +x /usr/local/bin/backup.sh
