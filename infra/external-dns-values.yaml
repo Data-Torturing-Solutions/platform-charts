@@ -1,0 +1,43 @@
+# helm upgrade --install external-dns external-dns/external-dns \
+#   -n external-dns --create-namespace -f infra/external-dns-values.yaml
+#
+# upsert-only by deliberate choice (see infra/README.md): this Cloudflare
+# account holds DNS for ~50 other properties outside this cluster. Creates
+# and updates records for hosts declared in this cluster's Ingresses;
+# never deletes. Removing a host from an app's values.yaml leaves its DNS
+# record in place until manually cleaned up — the tradeoff for zero
+# standing delete capability on a shared account.
+#
+# Needs no changes to app-base or any app's values.yaml — reads hostnames
+# straight from each Ingress's spec.rules[].host, which the chart already
+# populates from ingress.hosts.
+
+provider:
+  name: cloudflare
+
+env:
+  - name: CF_API_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: cloudflare-api-token
+        key: api-token
+
+sources:
+  - ingress
+
+policy: upsert-only
+
+# Only zones actually in play — a filter, not a suggestion. Add a domain
+# here when a new app gets a real hostname (e.g. once jpmc-tech has one).
+domainFilters:
+  - makersmap.co.uk
+  - cornwallhairdressers.co.uk
+
+# Tags every record it creates with this owner ID (via a TXT registry
+# record) so it only ever touches records it created itself — never
+# adopts or overwrites the ~50 pre-existing manually-managed records
+# already in these Cloudflare zones.
+txtOwnerId: rosetraviss-lon1
+
+extraArgs:
+  - --cloudflare-proxied

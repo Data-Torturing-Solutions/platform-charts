@@ -10,6 +10,13 @@
 controller:
   service:
     annotations:
+      # Since DOKS 1.33.1-do.0, the default LB type is REGIONAL_NETWORK,
+      # which silently ignores enable-proxy-protocol — the annotation sits
+      # on the Service with no effect and no error. Confirmed the hard way:
+      # direct TLS to the LB reset every connection (nginx expecting a
+      # PROXY preamble that never arrived, failing to parse the raw
+      # ClientHello as one). REGIONAL is the type that actually honors it.
+      service.beta.kubernetes.io/do-loadbalancer-type: "REGIONAL"
       service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol: "true"
       # Plain TCP/HTTPS passthrough — no do-loadbalancer-certificate-id set,
       # so the LB does not terminate TLS itself. cert-manager-issued certs
