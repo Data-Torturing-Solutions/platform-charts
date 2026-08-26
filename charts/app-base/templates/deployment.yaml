@@ -19,6 +19,9 @@ spec:
     metadata:
       labels:
         {{- include "app-base.labels" . | nindent 8 }}
+        # What the Service selects on, so CronJob pods -- which carry the same
+        # name/instance labels -- are not treated as HTTP endpoints.
+        app.kubernetes.io/component: web
       {{- with .Values.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}

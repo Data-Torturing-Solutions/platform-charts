@@ -1,0 +1,92 @@
+# Lint, package and push charts/app-base to DOCR.
+#
+# The README documented this as three commands to run by hand, which meant the
+# published chart and the repo could drift with nothing to notice it. This runs
+# the same three commands from CI so the pushed artefact always corresponds to
+# a commit.
+#
+# Dispatch-only on purpose. Publishing a chart version is a deliberate act:
+# every app that bumps chart_version picks it up.
+
+name: Release chart
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Lint and package only, do not push
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Lint
+        run: helm lint charts/app-base
+
+      # Renders with cronjobs AND a service enabled, which is the combination
+      # that produced the bug 0.1.5 fixes: CronJob pods carry the same
+      # name/instance labels as the Deployment, so a Service selecting on those
+      # alone lists job pods as HTTP endpoints.
+      - name: Render and assert the Service selects only web pods
+        run: |
+          set -euo pipefail
+          cat > /tmp/probe.yaml <<'EOF'
+          nameOverride: probe
+          image:
+            repository: example/probe
+            tag: test
+          service:
+            ports:
+              - name: http
+                port: 8000
+                targetPort: 8000
+          persistence:
+            enabled: true
+          cronjobs:
+            - name: nightly
+              schedule: "0 1 * * *"
+              command: ["probe"]
+              args: ["run"]
+          EOF
+          helm template probe charts/app-base -f /tmp/probe.yaml > /tmp/rendered.yaml
+
+          python - <<'PY'
+          import sys, yaml
+          docs = [d for d in yaml.safe_load_all(open("/tmp/rendered.yaml")) if d]
+          svc = next(d for d in docs if d["kind"] == "Service")
+          dep = next(d for d in docs if d["kind"] == "Deployment")
+          cron = next(d for d in docs if d["kind"] == "CronJob")
+
+          sel = svc["spec"]["selector"]
+          web = dep["spec"]["template"]["metadata"]["labels"]
+          job = cron["spec"]["jobTemplate"]["spec"]["template"]["metadata"]["labels"]
+
+          assert sel.items() <= web.items(), f"Service does not select the web pod: {sel} vs {web}"
+          assert not sel.items() <= job.items(), (
+              f"Service ALSO selects CronJob pods -- HTTP traffic will be routed to a "
+              f"container with nothing listening. selector={sel} job labels={job}"
+          )
+          print("OK: Service selects the Deployment's pods and not the CronJob's")
+          PY
+
+      - uses: digitalocean/action-doctl@v2
+        if: ${{ !inputs.dry_run }}
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Package and push
+        if: ${{ !inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          doctl registry login --expiry-seconds 1200
+          helm package charts/app-base -d /tmp
+          VER=$(grep '^version:' charts/app-base/Chart.yaml | awk '{print $2}')
+          helm push "/tmp/app-base-${VER}.tgz" oci://registry.digitalocean.com/rosetraviss/charts
+          echo "pushed app-base ${VER}"

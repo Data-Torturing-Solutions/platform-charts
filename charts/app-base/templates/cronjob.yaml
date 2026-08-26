@@ -22,6 +22,7 @@ spec:
         metadata:
           labels:
             {{- include "app-base.labels" $root | nindent 12 }}
+            app.kubernetes.io/component: job
         spec:
           restartPolicy: Never
           serviceAccountName: {{ include "app-base.serviceAccountName" $root }}
@@ -37,7 +38,7 @@ spec:
               requiredDuringSchedulingIgnoredDuringExecution:
                 - labelSelector:
                     matchLabels:
-                      {{- include "app-base.selectorLabels" $root | nindent 22 }}
+                      {{- include "app-base.webSelectorLabels" $root | nindent 22 }}
                   topologyKey: kubernetes.io/hostname
           {{- end }}
           securityContext:
