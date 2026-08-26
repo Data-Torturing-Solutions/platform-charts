@@ -33,6 +33,7 @@ domainFilters:
   - makersmap.co.uk
   - cornwallhairdressers.co.uk
   - worldbody.org
+  - datatorturingsolutions.co.uk
 
 # Tags every record it creates with this owner ID (via a TXT registry
 # record) so it only ever touches records it created itself — never
