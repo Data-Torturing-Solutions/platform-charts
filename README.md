@@ -11,6 +11,11 @@ Shared deployment platform for small apps on the `rosetraviss-lon1` DOKS cluster
 
 1. Containerize it (Dockerfile in the app repo).
 2. Write `deploy/values.yaml` in the app repo, overriding `charts/app-base/values.yaml`'s defaults.
+   **If you set `persistence.enabled: true`, do not also declare `volumeMounts` for
+   `persistence.mountPath`.** The chart already mounts the PVC there in the primary
+   container and in every cronjob, then appends `.Values.volumeMounts` on top;
+   declaring it again gives duplicate entries and server-side apply rejects the whole
+   release with `duplicate entries for key [mountPath=...]`.
 3. Add a workflow to the app repo that calls this repo's `deploy.yml` with `secrets: inherit`:
 
    ```yaml
@@ -20,7 +25,7 @@ Shared deployment platform for small apps on the `rosetraviss-lon1` DOKS cluster
        branches: [main, master]
    jobs:
      deploy:
-       uses: Data-Torturing-Solutions/platform-charts/.github/workflows/deploy.yml@main
+       uses: Data-Torturing-Solutions/platform-charts/.github/workflows/deploy.yml@master
        with:
          app_name: my-app
          namespace: app-my-app
