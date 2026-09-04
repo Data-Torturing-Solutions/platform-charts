@@ -19,13 +19,16 @@ on:
         default: false
         type: boolean
 
+permissions:
+  contents: read
+
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: azure/setup-helm@v4
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
 
       - name: Lint
         run: helm lint charts/app-base
@@ -76,7 +79,7 @@ jobs:
           print("OK: Service selects the Deployment's pods and not the CronJob's")
           PY
 
-      - uses: digitalocean/action-doctl@v2
+      - uses: digitalocean/action-doctl@3cb3953159719656269e044e0e24ca16dd2a690f # v2
         if: ${{ !inputs.dry_run }}
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
