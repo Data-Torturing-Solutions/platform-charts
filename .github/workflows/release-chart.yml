@@ -1,4 +1,4 @@
-# Lint, package and push charts/app-base to DOCR.
+# Lint, package and push charts/app-base to GHCR.
 #
 # The README documented this as three commands to run by hand, which meant the
 # published chart and the repo could drift with nothing to notice it. This runs
@@ -25,6 +25,9 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
@@ -79,17 +82,16 @@ jobs:
           print("OK: Service selects the Deployment's pods and not the CronJob's")
           PY
 
-      - uses: digitalocean/action-doctl@3cb3953159719656269e044e0e24ca16dd2a690f # v2
-        if: ${{ !inputs.dry_run }}
-        with:
-          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-
       - name: Package and push
         if: ${{ !inputs.dry_run }}
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY: ghcr.io/data-torturing-solutions
         run: |
           set -euo pipefail
-          doctl registry login --expiry-seconds 1200
+          echo "$GHCR_TOKEN" | helm registry login ghcr.io -u "$GHCR_USER" --password-stdin
           helm package charts/app-base -d /tmp
           VER=$(grep '^version:' charts/app-base/Chart.yaml | awk '{print $2}')
-          helm push "/tmp/app-base-${VER}.tgz" oci://registry.digitalocean.com/rosetraviss/charts
-          echo "pushed app-base ${VER}"
+          helm push "/tmp/app-base-${VER}.tgz" "oci://$REGISTRY/charts"
+          echo "pushed app-base ${VER} to $REGISTRY"

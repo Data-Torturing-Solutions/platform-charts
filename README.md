@@ -5,7 +5,7 @@ Shared deployment platform for small apps on the `rosetraviss-lon1` DOKS cluster
 ## What's here
 
 - **`charts/app-base`** — one Helm chart every app instantiates via its own `deploy/values.yaml`. Covers Deployment (+ optional sidecar containers), Service, Ingress (with per-path-group annotations, e.g. basic-auth on an admin path), PVC, ConfigMap, and CronJobs.
-- **`.github/workflows/deploy.yml`** — a reusable `workflow_call` workflow every app repo calls: build → push to DOCR → `helm upgrade --install --atomic`.
+- **`.github/workflows/deploy.yml`** — a reusable `workflow_call` workflow every app repo calls: build → push to GHCR → `helm upgrade --install --atomic`.
 
 ## Onboarding a new app
 
@@ -39,7 +39,7 @@ Shared deployment platform for small apps on the `rosetraviss-lon1` DOKS cluster
 ```bash
 helm lint charts/app-base
 helm package charts/app-base
-helm push app-base-X.Y.Z.tgz oci://registry.digitalocean.com/rosetraviss/charts
+helm push app-base-X.Y.Z.tgz oci://ghcr.io/data-torturing-solutions/charts
 ```
 
 Bump `version` in `charts/app-base/Chart.yaml` first, and the `chart_version` input in whichever app workflows should pick it up.
