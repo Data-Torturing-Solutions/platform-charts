@@ -31,13 +31,18 @@ securityContext:
 serviceAccount:
   create: true
   annotations: {}
-  # DOCR's cluster integration only attaches its pull secret to each
-  # namespace's *default* ServiceAccount automatically — a custom one like
-  # this chart creates gets nothing unless told, and falls back to an
-  # anonymous pull that DOCR rejects. Matches the registry set up via
-  # `doctl kubernetes cluster registry add` for this cluster.
+  # A custom ServiceAccount gets no pull secret unless told, and falls back to
+  # an anonymous pull that a private registry rejects.
+  #
+  # Under DOCR this named the secret that DigitalOcean's cluster integration
+  # injected. GHCR has no such integration, so the `ghcr` secret is created
+  # and refreshed by the shared deploy workflow from the GHCR_PULL_TOKEN
+  # org secret. If you deploy this chart by hand, create it first:
+  #
+  #   kubectl create secret docker-registry ghcr -n <ns> \
+  #     --docker-server=ghcr.io --docker-username=<user> --docker-password=<PAT>
   imagePullSecrets:
-    - name: rosetraviss
+    - name: ghcr
 
 # --- Primary container ---
 command: []
